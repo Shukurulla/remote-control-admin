@@ -1,0 +1,232 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  RefreshCw,
+  Rocket,
+  Trash2,
+  Link2,
+  User,
+  Copy,
+} from "lucide-react";
+import { toast } from "sonner";
+import { cn, formatDate, timeAgo } from "@/lib/utils";
+import { actionById } from "@/lib/actions";
+import { retryFailed } from "@/lib/task-runner";
+import { useTaskStore } from "@/store/task-store";
+import { taskCounts } from "@/lib/task-utils";
+import { UNIT_SORT } from "@/lib/task-utils";
+import { EmptyState } from "@/components/empty-state";
+import { ActionIcon } from "@/components/action-icon";
+import { TaskStatusBadge, UnitStatusBadge } from "@/components/status-badges";
+import { StatCard } from "@/components/stat-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+export default function TaskMonitorPage() {
+  const router = useRouter();
+  const params = useParams<{ id: string }>();
+  const task = useTaskStore((s) => s.tasks.find((t) => t.id === params.id));
+  const removeTask = useTaskStore((s) => s.removeTask);
+
+  if (!task) {
+    return (
+      <div className="space-y-6">
+        <Button variant="ghost" size="sm" asChild className="-ml-2">
+          <Link href="/tasks">
+            <ArrowLeft className="h-4 w-4" />
+            Vazifalar
+          </Link>
+        </Button>
+        <EmptyState
+          icon={<Rocket />}
+          title="Vazifa topilmadi"
+          description="Bu vazifa o'chirilgan yoki mavjud emas."
+          action={
+            <Button asChild>
+              <Link href="/new-task">Yangi vazifa</Link>
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
+
+  const action = actionById(task.actionId);
+  const c = taskCounts(task);
+  const units = [...task.units].sort(
+    (a, b) => UNIT_SORT[a.status] - UNIT_SORT[b.status],
+  );
+  const isAi = action?.mode === "ai";
+
+  const barColor =
+    task.status === "failed"
+      ? "bg-destructive"
+      : task.status === "completed"
+        ? "bg-success"
+        : "bg-warning";
+
+  function onRetry() {
+    retryFailed(task!.id);
+    toast.info("Xato telefonlarga qayta yuborilmoqda…");
+  }
+
+  function onDelete() {
+    removeTask(task!.id);
+    toast.success("Vazifa o'chirildi");
+    router.push("/tasks");
+  }
+
+  return (
+    <div className="space-y-6">
+      <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
+        <Link href="/tasks">
+          <ArrowLeft className="h-4 w-4" />
+          Vazifalar
+        </Link>
+      </Button>
+
+      {/* Sarlavha */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3.5">
+          <ActionIcon actionId={task.actionId} size="lg" />
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl font-bold tracking-tight">
+                {action?.label ?? task.actionId}
+              </h1>
+              <TaskStatusBadge status={task.status} />
+            </div>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {formatDate(task.createdAt)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {c.failed > 0 && task.status !== "running" && (
+            <Button variant="outline" onClick={onRetry}>
+              <RefreshCw className="h-4 w-4" />
+              Xatolarni qayta yuborish ({c.failed})
+            </Button>
+          )}
+          <Button variant="outline" asChild>
+            <Link href={`/new-task?type=${task.actionId}`}>
+              <Copy className="h-4 w-4" />
+              Nusxa
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onDelete}
+            className="text-muted-foreground hover:text-destructive"
+            title="O'chirish"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Statistika */}
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard label="Jami telefon" value={c.total} tone="primary" />
+        <StatCard label="Bajarildi" value={c.executed} tone="success" />
+        <StatCard
+          label="Kutilmoqda"
+          value={c.pending + c.sent}
+          tone="warning"
+        />
+        <StatCard label="Xato" value={c.failed} tone="destructive" />
+      </div>
+
+      {/* Maqsad + progress */}
+      <Card>
+        <CardContent className="space-y-4 pt-6">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            {task.postUrl && (
+              <a
+                href={task.postUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 text-primary hover:underline"
+              >
+                <Link2 className="h-4 w-4" />
+                Post havolasi
+              </a>
+            )}
+            {task.recipient && (
+              <span className="flex items-center gap-1.5">
+                <User className="h-4 w-4 text-muted-foreground" />
+                {task.recipient}
+              </span>
+            )}
+          </div>
+          {(task.text || task.ai?.description) && (
+            <p className="rounded-lg border bg-muted/30 p-3 text-sm">
+              {task.text || task.ai?.description}
+            </p>
+          )}
+          <Separator />
+          <div>
+            <div className="mb-1.5 flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Umumiy progress</span>
+              <span className="font-semibold tabular-nums">{c.progress}%</span>
+            </div>
+            <Progress value={c.progress} indicatorClassName={barColor} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Telefonlar jadvali */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Telefon</TableHead>
+                {isAi && <TableHead>Yozilgan izoh</TableHead>}
+                <TableHead className="w-[130px]">Holat</TableHead>
+                <TableHead className="w-[120px] text-right">Vaqt</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {units.map((u) => (
+                <TableRow key={u.deviceId}>
+                  <TableCell className="font-medium">{u.deviceName}</TableCell>
+                  {isAi && (
+                    <TableCell className="max-w-[360px] text-sm text-muted-foreground">
+                      {u.comment ? (
+                        <span className="line-clamp-2">{u.comment}</span>
+                      ) : (
+                        "—"
+                      )}
+                    </TableCell>
+                  )}
+                  <TableCell>
+                    <UnitStatusBadge status={u.status} />
+                  </TableCell>
+                  <TableCell className="text-right text-xs text-muted-foreground">
+                    {timeAgo(u.updatedAt)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
