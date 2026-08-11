@@ -107,9 +107,26 @@ export const commandsApi = {
     request<CommandRecord[]>(
       `/api/commands/history/${encodeURIComponent(deviceId)}`,
     ),
+
+  /** Bir nechta buyruq ma'lumotini birga olish (progressHistory bilan) */
+  batch: (ids: string[]) =>
+    request<CommandRecord[]>(`/api/commands/batch`, {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
+
+  get: (id: string) =>
+    request<CommandRecord>(`/api/commands/${encodeURIComponent(id)}`),
 };
 
-/** Socket.io ulanish manzili (bo'sh bo'lsa same-origin) */
+/** Socket.io ulanish manzili.
+ *  Brauzer to'g'ridan-to'g'ri backend ga ulanadi — proxy chain WebSocket
+ *  upgrade'ni ba'zi holatda uzib qo'yishi mumkin, shuning uchun to'g'ridan
+ *  tashqi manzil ustunroq. `NEXT_PUBLIC_SOCKET_URL` bo'lmasa, `NEXT_PUBLIC_API_URL`
+ *  yoki same-origin ishlatiladi.
+ */
 export function socketUrl(): string {
+  const direct = process.env.NEXT_PUBLIC_SOCKET_URL;
+  if (direct) return direct;
   return BASE || (typeof window !== "undefined" ? window.location.origin : "");
 }

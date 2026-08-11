@@ -46,6 +46,12 @@ interface TaskState {
     step: ProgressStep,
     message: string,
   ) => void;
+  /** Backenddan olingan progressHistory bilan unitni to'ldirish (task holati tekshirilmaydi) */
+  hydrateUnitProgress: (
+    commandId: string,
+    history: ProgressEntry[],
+    status?: UnitStatus,
+  ) => void;
   finalizeTask: (taskId: string) => void;
   removeTask: (taskId: string) => void;
   clearFinished: () => void;
@@ -88,7 +94,6 @@ export const useTaskStore = create<TaskState>()(
         const entry: ProgressEntry = { step, message, timestamp: Date.now() };
         set((s) => ({
           tasks: s.tasks.map((t) => {
-            if (t.status !== "running") return t;
             const hasUnit = t.units.some(
               (u) => u.deviceId === deviceId && u.commandId === commandId,
             );
@@ -104,7 +109,30 @@ export const useTaskStore = create<TaskState>()(
                 updatedAt: Date.now(),
               };
             });
-            return { ...t, units };
+            return { ...t, units, status: deriveStatus(units) };
+          }),
+        }));
+      },
+
+      hydrateUnitProgress: (commandId, history, status) => {
+        if (!commandId) return;
+        set((s) => ({
+          tasks: s.tasks.map((t) => {
+            const hasUnit = t.units.some((u) => u.commandId === commandId);
+            if (!hasUnit) return t;
+            const units = t.units.map((u) => {
+              if (u.commandId !== commandId) return u;
+              const last = history[history.length - 1];
+              return {
+                ...u,
+                status: status ?? u.status,
+                currentStep: last?.step ?? u.currentStep,
+                stepMessage: last?.message ?? u.stepMessage,
+                progressHistory: history.length ? history : u.progressHistory,
+                updatedAt: Date.now(),
+              };
+            });
+            return { ...t, units, status: deriveStatus(units) };
           }),
         }));
       },

@@ -16,7 +16,9 @@ import { toast } from "sonner";
 import { cn, formatDate, timeAgo } from "@/lib/utils";
 import { actionById } from "@/lib/actions";
 import { retryFailed } from "@/lib/task-runner";
+import { commandsApi } from "@/lib/api";
 import { useTaskStore } from "@/store/task-store";
+import type { ProgressEntry, ProgressStep, UnitStatus } from "@/lib/types";
 import { taskCounts } from "@/lib/task-utils";
 import { UNIT_SORT } from "@/lib/task-utils";
 import { EmptyState } from "@/components/empty-state";
@@ -37,11 +39,78 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+function statusFromCommand(status?: string): UnitStatus | undefined {
+  switch (status) {
+    case "executed":
+      return "executed";
+    case "failed":
+      return "failed";
+    case "sent":
+    case "delivered":
+    case "executing":
+      return "sent";
+    case "pending":
+      return "pending";
+    default:
+      return undefined;
+  }
+}
+
 export default function TaskMonitorPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const task = useTaskStore((s) => s.tasks.find((t) => t.id === params.id));
   const removeTask = useTaskStore((s) => s.removeTask);
+  const hydrateUnitProgress = useTaskStore((s) => s.hydrateUnitProgress);
+
+  // Backenddagi progress ni yuklash — real-time uzilgan holatlar uchun ham
+  // to'liq bosqichlar ko'rinishi kerak. Har 3 sekundda ishlaydigan taskda esa
+  // real-time bilan bir vaqtda ma'lumotni yangilab boradi.
+  const commandIds = React.useMemo(
+    () =>
+      (task?.units ?? [])
+        .map((u) => u.commandId)
+        .filter((id): id is string => Boolean(id)),
+    [task?.units],
+  );
+  const commandIdsKey = commandIds.join(",");
+
+  React.useEffect(() => {
+    if (!commandIds.length) return;
+    let cancelled = false;
+
+    async function pull() {
+      try {
+        const records = await commandsApi.batch(commandIds);
+        if (cancelled) return;
+        for (const rec of records) {
+          if (!rec._id) continue;
+          const history: ProgressEntry[] = (rec.progressHistory ?? []).map(
+            (h) => ({
+              step: h.step as ProgressStep,
+              message: h.message ?? "",
+              timestamp: h.timestamp
+                ? new Date(h.timestamp).getTime()
+                : Date.now(),
+            }),
+          );
+          hydrateUnitProgress(rec._id, history, statusFromCommand(rec.status));
+        }
+      } catch {
+        /* silent */
+      }
+    }
+
+    void pull();
+    const stillRunning = task?.status === "running";
+    if (!stillRunning) return;
+    const id = setInterval(pull, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commandIdsKey, task?.status, hydrateUnitProgress]);
 
   if (!task) {
     return (

@@ -29,9 +29,19 @@ export interface CommandRecord {
   _id?: string;
   command: CommandName | string;
   params?: CommandParams;
-  status: CommandStatus;
+  status: CommandStatus | string;
   createdAt?: string;
   deviceId?: string;
+  progress?: {
+    step: ProgressStep;
+    message?: string;
+    timestamp?: string;
+  };
+  progressHistory?: Array<{
+    step: ProgressStep;
+    message?: string;
+    timestamp?: string;
+  }>;
 }
 
 export interface AiCommentResult {
