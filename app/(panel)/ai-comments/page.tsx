@@ -61,6 +61,7 @@ export default function AICommentsPage() {
       socket.off('command_progress', handleProgressUpdate);
       socket.off('command_result', handleCommandResult);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchDevices = async () => {

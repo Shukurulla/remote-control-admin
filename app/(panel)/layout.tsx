@@ -8,6 +8,7 @@ import { useDeviceStore } from "@/store/device-store";
 import { useSocket } from "@/hooks/use-socket";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
+import { Toaster } from "@/components/ui/toaster";
 
 function Splash() {
   return (
@@ -62,6 +63,7 @@ export default function PanelLayout({
           {children}
         </main>
       </div>
+      <Toaster />
     </div>
   );
 }
