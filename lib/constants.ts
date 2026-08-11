@@ -94,25 +94,81 @@ export const UNIT_STATUS: Record<
 };
 
 // ── Progress bosqichlari ───────────────────────────────────
-export const PROGRESS_STEPS: {
+export interface ProgressStepMeta {
   step: ProgressStep;
   label: string;
   icon: string;
-}[] = [
-  { step: "received", label: "Buyruq qabul qilindi", icon: "📩" },
-  { step: "opening_app", label: "Instagram ochilmoqda", icon: "📱" },
-  { step: "app_opened", label: "Instagram ochildi", icon: "✅" },
-  { step: "opening_comment", label: "Comment oynasi ochilmoqda", icon: "💬" },
-  { step: "comment_opened", label: "Comment oynasi ochildi", icon: "✅" },
-  { step: "typing", label: "Comment yozilmoqda", icon: "⌨️" },
-  { step: "posting", label: "Comment yuborilmoqda", icon: "📤" },
-  { step: "completed", label: "Muvaffaqiyatli!", icon: "🎉" },
-  { step: "failed", label: "Xatolik", icon: "❌" },
+  description: string;
+  troubleshoot?: string;
+}
+
+export const PROGRESS_STEPS: ProgressStepMeta[] = [
+  {
+    step: "received",
+    label: "Buyruq qabul qilindi",
+    icon: "📩",
+    description: "Telefon serverdan vazifani qabul qildi va bajarishga tayyorlandi.",
+  },
+  {
+    step: "opening_app",
+    label: "Instagram ochilmoqda",
+    icon: "📱",
+    description: "Accessibility service Instagram ilovasini foreground ga chiqarmoqda.",
+    troubleshoot: "Instagram o'rnatilmagan yoki ilova crash bo'lgan bo'lishi mumkin.",
+  },
+  {
+    step: "app_opened",
+    label: "Instagram ochildi",
+    icon: "✅",
+    description: "Instagram ilovasi foreground'da. Endi berilgan post havolasi ochiladi.",
+  },
+  {
+    step: "opening_comment",
+    label: "Comment oynasi ochilmoqda",
+    icon: "💬",
+    description: "Post ochilib, comment tugmasi qidirilmoqda va bosilmoqda.",
+    troubleshoot: "Comment cheklangan post, private akkaunt yoki notanish UI bo'lishi mumkin.",
+  },
+  {
+    step: "comment_opened",
+    label: "Comment oynasi ochildi",
+    icon: "✅",
+    description: "Comment yozish input oynasi ochildi va yozish uchun tayyor.",
+  },
+  {
+    step: "typing",
+    label: "Comment yozilmoqda",
+    icon: "⌨️",
+    description: "Comment matni input maydoniga kiritilmoqda.",
+    troubleshoot: "Klaviatura ochilmagan yoki input maydoni topilmagan bo'lishi mumkin.",
+  },
+  {
+    step: "posting",
+    label: "Comment yuborilmoqda",
+    icon: "📤",
+    description: "\"Post\" tugmasi bosilib, comment serverga yuborilmoqda.",
+  },
+  {
+    step: "completed",
+    label: "Muvaffaqiyatli!",
+    icon: "🎉",
+    description: "Comment joylandi. Vazifa tugadi.",
+  },
+  {
+    step: "failed",
+    label: "Xatolik",
+    icon: "❌",
+    description: "Vazifa bajarilmadi. Xato tafsilotlarini pastdan ko'ring.",
+  },
 ];
 
 export function progressStepIndex(step: ProgressStep): number {
   const idx = PROGRESS_STEPS.findIndex((s) => s.step === step);
   return idx >= 0 ? idx : -1;
+}
+
+export function progressStepMeta(step: ProgressStep): ProgressStepMeta | undefined {
+  return PROGRESS_STEPS.find((s) => s.step === step);
 }
 
 // ── AI sozlamalari ──────────────────────────────────────────

@@ -11,6 +11,7 @@ import {
   Link2,
   User,
   Copy,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatDate, timeAgo } from "@/lib/utils";
@@ -24,6 +25,7 @@ import { UNIT_SORT } from "@/lib/task-utils";
 import { EmptyState } from "@/components/empty-state";
 import { ActionIcon } from "@/components/action-icon";
 import { DeviceProgress } from "@/components/device-progress";
+import { DeviceProgressTimeline } from "@/components/device-progress-timeline";
 import { TaskStatusBadge, UnitStatusBadge } from "@/components/status-badges";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
@@ -267,6 +269,7 @@ export default function TaskMonitorPage() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
+                {showProgress && <TableHead className="w-[40px]" />}
                 <TableHead>Telefon</TableHead>
                 {isAi && <TableHead>Yozilgan izoh</TableHead>}
                 {showProgress && <TableHead>Progress</TableHead>}
@@ -276,38 +279,119 @@ export default function TaskMonitorPage() {
             </TableHeader>
             <TableBody>
               {units.map((u) => (
-                <TableRow key={u.deviceId}>
-                  <TableCell className="font-medium">{u.deviceName}</TableCell>
-                  {isAi && (
-                    <TableCell className="max-w-[360px] text-sm text-muted-foreground">
-                      {u.comment ? (
-                        <span className="line-clamp-2">{u.comment}</span>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                  )}
-                  {showProgress && (
-                    <TableCell>
-                      <DeviceProgress
-                        currentStep={u.currentStep}
-                        stepMessage={u.stepMessage}
-                        progressHistory={u.progressHistory}
-                      />
-                    </TableCell>
-                  )}
-                  <TableCell>
-                    <UnitStatusBadge status={u.status} />
-                  </TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground">
-                    {timeAgo(u.updatedAt)}
-                  </TableCell>
-                </TableRow>
+                <DeviceRow
+                  key={u.deviceId}
+                  deviceName={u.deviceName}
+                  comment={u.comment}
+                  status={u.status}
+                  updatedAt={u.updatedAt}
+                  currentStep={u.currentStep}
+                  stepMessage={u.stepMessage}
+                  progressHistory={u.progressHistory}
+                  showAi={isAi}
+                  showProgress={showProgress}
+                />
               ))}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+interface DeviceRowProps {
+  deviceName: string;
+  comment?: string;
+  status: UnitStatus;
+  updatedAt: number;
+  currentStep?: ProgressStep;
+  stepMessage?: string;
+  progressHistory?: ProgressEntry[];
+  showAi: boolean;
+  showProgress: boolean;
+}
+
+function DeviceRow({
+  deviceName,
+  comment,
+  status,
+  updatedAt,
+  currentStep,
+  stepMessage,
+  progressHistory,
+  showAi,
+  showProgress,
+}: DeviceRowProps) {
+  const [open, setOpen] = React.useState(false);
+  const hasTimeline =
+    showProgress && (Boolean(currentStep) || (progressHistory?.length ?? 0) > 0);
+  // Xatolik yoki jarayondagi qatorlar avtomatik ochilib turadi (foydalanuvchi bosishi shart emas)
+  const autoOpen = status === "failed";
+
+  const expanded = open || autoOpen;
+  const columnSpan =
+    1 + (showAi ? 1 : 0) + (showProgress ? 2 : 0) + 2; // toggle + name + [comment] + [progress] + status + time
+
+  return (
+    <>
+      <TableRow className={cn(expanded && "border-b-0")}>
+        {showProgress && (
+          <TableCell className="pr-0">
+            {hasTimeline ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setOpen((v) => !v)}
+                className="h-7 w-7"
+                aria-label={expanded ? "Yopish" : "Batafsil"}
+              >
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 transition-transform",
+                    expanded && "rotate-180",
+                  )}
+                />
+              </Button>
+            ) : null}
+          </TableCell>
+        )}
+        <TableCell className="font-medium">{deviceName}</TableCell>
+        {showAi && (
+          <TableCell className="max-w-[360px] text-sm text-muted-foreground">
+            {comment ? (
+              <span className="line-clamp-2">{comment}</span>
+            ) : (
+              "—"
+            )}
+          </TableCell>
+        )}
+        {showProgress && (
+          <TableCell>
+            <DeviceProgress
+              currentStep={currentStep}
+              stepMessage={stepMessage}
+              progressHistory={progressHistory}
+            />
+          </TableCell>
+        )}
+        <TableCell>
+          <UnitStatusBadge status={status} />
+        </TableCell>
+        <TableCell className="text-right text-xs text-muted-foreground">
+          {timeAgo(updatedAt)}
+        </TableCell>
+      </TableRow>
+      {expanded && hasTimeline && (
+        <TableRow className="hover:bg-transparent">
+          <TableCell colSpan={columnSpan} className="bg-muted/20 py-3">
+            <DeviceProgressTimeline
+              currentStep={currentStep}
+              progressHistory={progressHistory}
+            />
+          </TableCell>
+        </TableRow>
+      )}
+    </>
   );
 }
