@@ -29,14 +29,6 @@ export function DeviceProgress({
   stepMessage,
   progressHistory,
 }: DeviceProgressProps) {
-  if (!currentStep && !progressHistory?.length) {
-    return (
-      <span className="text-xs italic text-muted-foreground">
-        Progress kutilmoqda…
-      </span>
-    );
-  }
-
   const isFailed = currentStep === "failed";
   const currentIdx = currentStep ? progressStepIndex(currentStep) : -1;
   const failedEntry = progressHistory?.find((e) => e.step === "failed");
@@ -49,6 +41,14 @@ export function DeviceProgress({
       .find((e) => e.step !== "failed");
     return beforeFailed ? progressStepIndex(beforeFailed.step) : -1;
   }, [isFailed, progressHistory]);
+
+  if (!currentStep && !progressHistory?.length) {
+    return (
+      <span className="text-xs italic text-muted-foreground">
+        Progress kutilmoqda…
+      </span>
+    );
+  }
 
   return (
     <TooltipProvider delayDuration={150}>

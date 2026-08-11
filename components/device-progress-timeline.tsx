@@ -45,8 +45,12 @@ export function DeviceProgressTimeline({
   currentStep,
   progressHistory,
 }: DeviceProgressTimelineProps) {
-  const history = progressHistory ?? [];
-  const isFailed = currentStep === "failed" || history.some((h) => h.step === "failed");
+  const history = React.useMemo(
+    () => progressHistory ?? [],
+    [progressHistory],
+  );
+  const isFailed =
+    currentStep === "failed" || history.some((h) => h.step === "failed");
   const isCompleted = currentStep === "completed";
   const currentIdx = currentStep ? progressStepIndex(currentStep) : -1;
 
