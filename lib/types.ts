@@ -39,6 +39,7 @@ export interface AiCommentResult {
   comment: string;
   status: string;
   success: boolean;
+  commandId?: string;
 }
 
 export interface AiCommentResponse {
@@ -60,6 +61,16 @@ export interface CommandResultEvent {
   command: CommandName | string;
   status: CommandStatus;
   deviceId?: string;
+  commandId?: string;
+}
+
+export interface CommandProgressEvent {
+  commandId: string;
+  deviceId: string;
+  command: string;
+  step: ProgressStep;
+  message?: string;
+  timestamp: string;
 }
 
 export type AiTone = "positive" | "neutral" | "negative";
@@ -84,12 +95,33 @@ export type TargetKind = "post" | "recipient";
 /** Bitta telefon uchun vazifa natijasi holati */
 export type UnitStatus = "pending" | "sent" | "executed" | "failed";
 
+export type ProgressStep =
+  | "received"
+  | "opening_app"
+  | "app_opened"
+  | "opening_comment"
+  | "comment_opened"
+  | "typing"
+  | "posting"
+  | "completed"
+  | "failed";
+
+export interface ProgressEntry {
+  step: ProgressStep;
+  message: string;
+  timestamp: number;
+}
+
 export interface TaskUnit {
   deviceId: string;
   deviceName: string;
   status: UnitStatus;
-  comment?: string; // AI izoh matni (agar bo'lsa)
+  comment?: string;
   updatedAt: number;
+  commandId?: string;
+  currentStep?: ProgressStep;
+  stepMessage?: string;
+  progressHistory?: ProgressEntry[];
 }
 
 /** Vazifaning umumiy holati */

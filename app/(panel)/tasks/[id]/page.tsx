@@ -21,6 +21,7 @@ import { taskCounts } from "@/lib/task-utils";
 import { UNIT_SORT } from "@/lib/task-utils";
 import { EmptyState } from "@/components/empty-state";
 import { ActionIcon } from "@/components/action-icon";
+import { DeviceProgress } from "@/components/device-progress";
 import { TaskStatusBadge, UnitStatusBadge } from "@/components/status-badges";
 import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ export default function TaskMonitorPage() {
     (a, b) => UNIT_SORT[a.status] - UNIT_SORT[b.status],
   );
   const isAi = action?.mode === "ai";
+  const showProgress = task.actionId === "ig_comment" || task.actionId === "ig_ai_comment";
 
   const barColor =
     task.status === "failed"
@@ -198,6 +200,7 @@ export default function TaskMonitorPage() {
               <TableRow className="hover:bg-transparent">
                 <TableHead>Telefon</TableHead>
                 {isAi && <TableHead>Yozilgan izoh</TableHead>}
+                {showProgress && <TableHead>Progress</TableHead>}
                 <TableHead className="w-[130px]">Holat</TableHead>
                 <TableHead className="w-[120px] text-right">Vaqt</TableHead>
               </TableRow>
@@ -213,6 +216,15 @@ export default function TaskMonitorPage() {
                       ) : (
                         "—"
                       )}
+                    </TableCell>
+                  )}
+                  {showProgress && (
+                    <TableCell>
+                      <DeviceProgress
+                        currentStep={u.currentStep}
+                        stepMessage={u.stepMessage}
+                        progressHistory={u.progressHistory}
+                      />
                     </TableCell>
                   )}
                   <TableCell>

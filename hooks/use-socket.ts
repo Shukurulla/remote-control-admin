@@ -6,7 +6,7 @@ import { socketUrl } from "@/lib/api";
 import { useDeviceStore } from "@/store/device-store";
 import { useTaskStore } from "@/store/task-store";
 import { actionByCommand } from "@/lib/actions";
-import type { CommandResultEvent } from "@/lib/types";
+import type { CommandResultEvent, CommandProgressEvent } from "@/lib/types";
 
 /**
  * Autentifikatsiyadan keyin ulanadigan Socket.io hook.
@@ -33,6 +33,17 @@ export function useSocket(enabled: boolean) {
     socket.on("device_online", refresh);
     socket.on("device_offline", refresh);
 
+    socket.on("command_progress", (data: CommandProgressEvent) => {
+      if (!data?.deviceId || !data?.commandId) return;
+      const { updateUnitProgress } = useTaskStore.getState();
+      updateUnitProgress(
+        data.deviceId,
+        data.commandId,
+        data.step,
+        data.message ?? "",
+      );
+    });
+
     socket.on("command_result", (data: CommandResultEvent) => {
       refresh();
       if (!data?.deviceId) return;
@@ -41,7 +52,6 @@ export function useSocket(enabled: boolean) {
       const action = data.command ? actionByCommand(data.command) : undefined;
 
       const { tasks, updateUnit, finalizeTask } = useTaskStore.getState();
-      // Shu qurilma bo'yicha tasdiq kutayotgan eng so'nggi faol vazifa
       const task = tasks.find(
         (t) =>
           t.status === "running" &&
@@ -58,6 +68,7 @@ export function useSocket(enabled: boolean) {
     return () => {
       socket.off("device_online", refresh);
       socket.off("device_offline", refresh);
+      socket.off("command_progress");
       socket.off("command_result");
       socket.disconnect();
       socketRef.current = null;

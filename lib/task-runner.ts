@@ -63,7 +63,11 @@ async function process(taskId: string, action: ActionDef, input: RunInput) {
       for (const d of input.devices) {
         const r = map.get(d.deviceId);
         if (r && r.success) {
-          updateUnit(taskId, d.deviceId, { status: "sent", comment: r.comment });
+          updateUnit(taskId, d.deviceId, {
+            status: "sent",
+            comment: r.comment,
+            commandId: r.commandId,
+          });
         } else {
           updateUnit(taskId, d.deviceId, {
             status: "failed",
@@ -85,8 +89,12 @@ async function process(taskId: string, action: ActionDef, input: RunInput) {
   for (const d of input.devices) {
     try {
       const res = await commandsApi.send(d.deviceId, action.command!, params);
+      const cmdId = res?.command && typeof res.command === "object"
+        ? (res.command as Record<string, unknown>)._id as string | undefined
+        : undefined;
       updateUnit(taskId, d.deviceId, {
         status: res && res.success === false ? "failed" : "sent",
+        commandId: cmdId,
       });
     } catch {
       updateUnit(taskId, d.deviceId, { status: "failed" });

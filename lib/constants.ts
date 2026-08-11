@@ -6,7 +6,7 @@ import {
   Smartphone,
   type LucideIcon,
 } from "lucide-react";
-import type { AiLang, AiTone, TaskStatus, UnitStatus } from "./types";
+import type { AiLang, AiTone, ProgressStep, TaskStatus, UnitStatus } from "./types";
 
 // ── Navigatsiya ─────────────────────────────────────────────
 export interface NavItem {
@@ -92,6 +92,28 @@ export const UNIT_STATUS: Record<
   executed: { label: "Bajarildi", variant: "success" },
   failed: { label: "Xato", variant: "destructive" },
 };
+
+// ── Progress bosqichlari ───────────────────────────────────
+export const PROGRESS_STEPS: {
+  step: ProgressStep;
+  label: string;
+  icon: string;
+}[] = [
+  { step: "received", label: "Buyruq qabul qilindi", icon: "📩" },
+  { step: "opening_app", label: "Instagram ochilmoqda", icon: "📱" },
+  { step: "app_opened", label: "Instagram ochildi", icon: "✅" },
+  { step: "opening_comment", label: "Comment oynasi ochilmoqda", icon: "💬" },
+  { step: "comment_opened", label: "Comment oynasi ochildi", icon: "✅" },
+  { step: "typing", label: "Comment yozilmoqda", icon: "⌨️" },
+  { step: "posting", label: "Comment yuborilmoqda", icon: "📤" },
+  { step: "completed", label: "Muvaffaqiyatli!", icon: "🎉" },
+  { step: "failed", label: "Xatolik", icon: "❌" },
+];
+
+export function progressStepIndex(step: ProgressStep): number {
+  const idx = PROGRESS_STEPS.findIndex((s) => s.step === step);
+  return idx >= 0 ? idx : -1;
+}
 
 // ── AI sozlamalari ──────────────────────────────────────────
 export const AI_LANGS: { value: AiLang; label: string; flag: string }[] = [

@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { Task, TaskStatus, TaskUnit, UnitStatus } from "@/lib/types";
+import type { Task, TaskStatus, TaskUnit, UnitStatus, ProgressStep, ProgressEntry } from "@/lib/types";
 
 /** Vazifa umumiy holatini bajaruvchilar holatidan hisoblash */
 export function deriveStatus(units: TaskUnit[]): TaskStatus {
@@ -38,7 +38,13 @@ interface TaskState {
   updateUnit: (
     taskId: string,
     deviceId: string,
-    patch: Partial<Pick<TaskUnit, "status" | "comment">>,
+    patch: Partial<Pick<TaskUnit, "status" | "comment" | "commandId">>,
+  ) => void;
+  updateUnitProgress: (
+    deviceId: string,
+    commandId: string,
+    step: ProgressStep,
+    message: string,
   ) => void;
   finalizeTask: (taskId: string) => void;
   removeTask: (taskId: string) => void;
@@ -74,6 +80,31 @@ export const useTaskStore = create<TaskState>()(
                 : u,
             );
             return { ...t, units, status: deriveStatus(units) };
+          }),
+        }));
+      },
+
+      updateUnitProgress: (deviceId, commandId, step, message) => {
+        const entry: ProgressEntry = { step, message, timestamp: Date.now() };
+        set((s) => ({
+          tasks: s.tasks.map((t) => {
+            if (t.status !== "running") return t;
+            const hasUnit = t.units.some(
+              (u) => u.deviceId === deviceId && u.commandId === commandId,
+            );
+            if (!hasUnit) return t;
+            const units = t.units.map((u) => {
+              if (u.deviceId !== deviceId || u.commandId !== commandId) return u;
+              const history = [...(u.progressHistory ?? []), entry];
+              return {
+                ...u,
+                currentStep: step,
+                stepMessage: message,
+                progressHistory: history,
+                updatedAt: Date.now(),
+              };
+            });
+            return { ...t, units };
           }),
         }));
       },
