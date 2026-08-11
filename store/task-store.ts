@@ -55,6 +55,11 @@ interface TaskState {
   finalizeTask: (taskId: string) => void;
   removeTask: (taskId: string) => void;
   clearFinished: () => void;
+  /** Uzoq vaqtdan beri yangilanmagan running vazifalarni failed deb belgilash.
+   *  maxAgeMs — vazifa (yoki uning oxirgi progress hodisasi) qanchagacha eski
+   *  bo'lsa "eskirgan" hisoblanishi. Standart: 5 daqiqa. Qaytaradi: nechta
+   *  vazifa belgilangani. */
+  markStaleAsFailed: (maxAgeMs?: number) => number;
 
   getTask: (taskId: string) => Task | undefined;
   activeTasks: () => Task[];
@@ -156,6 +161,42 @@ export const useTaskStore = create<TaskState>()(
 
       clearFinished: () =>
         set((s) => ({ tasks: s.tasks.filter((t) => t.status === "running") })),
+
+      markStaleAsFailed: (maxAgeMs = 5 * 60 * 1000) => {
+        const now = Date.now();
+        const cutoff = now - maxAgeMs;
+        let markedCount = 0;
+        set((s) => ({
+          tasks: s.tasks.map((t) => {
+            if (t.status !== "running") return t;
+            const lastActivity = Math.max(
+              t.createdAt,
+              ...t.units.map((u) => u.updatedAt),
+            );
+            if (lastActivity >= cutoff) return t;
+            const units = t.units.map((u) => {
+              if (u.status !== "pending" && u.status !== "sent") return u;
+              return {
+                ...u,
+                status: "failed" as UnitStatus,
+                stepMessage:
+                  u.stepMessage ||
+                  "Vaqti tugadi — telefondan javob kelmadi (timeout)",
+                updatedAt: now,
+              };
+            });
+            const newStatus = deriveStatus(units);
+            if (newStatus !== "running") markedCount += 1;
+            return {
+              ...t,
+              units,
+              status: newStatus,
+              finishedAt: newStatus === "running" ? t.finishedAt : now,
+            };
+          }),
+        }));
+        return markedCount;
+      },
 
       getTask: (taskId) => get().tasks.find((t) => t.id === taskId),
       activeTasks: () => get().tasks.filter((t) => t.status === "running"),

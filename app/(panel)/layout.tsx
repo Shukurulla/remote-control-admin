@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Smartphone } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 import { useDeviceStore } from "@/store/device-store";
+import { useTaskStore } from "@/store/task-store";
 import { useSocket } from "@/hooks/use-socket";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
@@ -43,6 +44,19 @@ export default function PanelLayout({
     const id = setInterval(() => loadDevices({ silent: true }), 30000);
     return () => clearInterval(id);
   }, [status, loadDevices]);
+
+  // Eskirgan running vazifalarni failed deb belgilash (timeout).
+  // 5 daqiqadan beri hech qanday yangilanish bo'lmagan bo'lsa — telefondan
+  // javob kelmagan, vazifa muvaffaqiyatsiz. Sahifa yuklanganda va har daqiqada.
+  React.useEffect(() => {
+    if (status !== "authenticated") return;
+    const sweep = () => {
+      useTaskStore.getState().markStaleAsFailed(5 * 60 * 1000);
+    };
+    sweep();
+    const id = setInterval(sweep, 60_000);
+    return () => clearInterval(id);
+  }, [status]);
 
   // Ruxsatsiz bo'lsa login sahifasiga
   React.useEffect(() => {
