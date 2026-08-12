@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ListChecks, Plus, Search, Trash2 } from "lucide-react";
+import { ListChecks, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTaskStore } from "@/store/task-store";
 import { taskActionLabel, taskSubtitle } from "@/lib/task-utils";
@@ -26,7 +26,6 @@ const FILTERS: { value: Filter; label: string }[] = [
 
 export default function TasksPage() {
   const tasks = useTaskStore((s) => s.tasks);
-  const clearFinished = useTaskStore((s) => s.clearFinished);
   const [filter, setFilter] = React.useState<Filter>("all");
   const [query, setQuery] = React.useState("");
 
@@ -55,20 +54,12 @@ export default function TasksPage() {
         description="Yaratilgan barcha vazifalar va ularning bajarilish holati."
         icon={<ListChecks />}
         actions={
-          <>
-            {tasks.some((t) => t.status !== "running") && (
-              <Button variant="outline" onClick={clearFinished}>
-                <Trash2 className="h-4 w-4" />
-                Yakunlanganlarni tozalash
-              </Button>
-            )}
-            <Button asChild>
-              <Link href="/new-task">
-                <Plus className="h-4 w-4" />
-                Yangi vazifa
-              </Link>
-            </Button>
-          </>
+          <Button asChild>
+            <Link href="/new-task">
+              <Plus className="h-4 w-4" />
+              Yangi vazifa
+            </Link>
+          </Button>
         }
       />
 
