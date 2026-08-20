@@ -109,10 +109,15 @@ export type ProgressStep =
   | "received"
   | "opening_app"
   | "app_opened"
+  | "post_loading"
+  | "post_loaded"
+  | "checking_permission"
   | "opening_comment"
   | "comment_opened"
   | "typing"
+  | "text_verified"
   | "posting"
+  | "verifying"
   | "completed"
   | "failed";
 
